@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krishi Mitra - AI Crop Doctor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 Krishi Mitra</h1>
+            <p>AI-Powered Crop Disease Detection</p>
+        </div>
+        
+        <div class="upload-area">
+            <div class="upload-box">
+                <div class="upload-icon">📷</div>
+                <h3>Upload Crop Image</h3>
+                <p>Take a clear photo of plant leaves</p>
+                
+                <div class="file-input">
+                    <input type="file" id="imageInput" accept="image/*" hidden>
+                    <button class="btn" onclick="document.getElementById('imageInput').click()">
+                        Choose Image
+                    </button>
+                </div>
+                
+                <button class="btn" id="analyzeBtn" onclick="analyzeImage()" disabled>
+                    🔍 Analyze Disease
+                </button>
+                <button class="btn btn-secondary" onclick="resetForm()">
+                    🔄 Reset
+                </button>
+            </div>
+        </div>
+        
+        <div id="imagePreview"></div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>AI is analyzing your crop image...</p>
+        </div>
+        
+        <div class="result-section" id="resultSection">
+            <div class="result-card">
+                <h3>Detection Results</h3>
+                <div id="diseaseResult"></div>
+            </div>
+            
+            <div class="treatment-card">
+                <div id="treatmentAdvice"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
