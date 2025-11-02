@@ -1,12 +1,12 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from model import CropDiseaseModel
 from PIL import Image
 import io
 import logging
 
-# Configure logging
+# Configure Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('krishi_mitra')
 
@@ -17,9 +17,10 @@ app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
         "origins": [
-            "https://DreamBaka69.github.io/Krishi-mitra/",  # GitHub Pages
+            "https://krish-mitra-crob.onrender.com",  
+            "https://DreamBaka69.github.io/Krishi-mitra/",
             "http://localhost:3000",
-            "http://127.0.0.1:3000",
+            "http://127.0.0.1:3000", 
             "http://localhost:5000",
             "http://127.0.0.1:5000"
         ],
@@ -148,6 +149,32 @@ def test_endpoint():
         'status': 'operational'
     })
 
+# Serve frontend files
+@app.route('/')
+def serve_frontend():
+    """Serve the main frontend page"""
+    try:
+        return send_from_directory('../frontend', 'index.html')
+    except Exception as e:
+        logger.error(f"Frontend serving error: {e}")
+        return jsonify({
+            'message': '🌱 Krishi Mitra API is running!',
+            'frontend': 'Frontend files not found, but API is operational',
+            'endpoints': {
+                '/analyze': 'POST - Analyze crop image',
+                '/health': 'GET - Health check',
+                '/classes': 'GET - List supported diseases'
+            }
+        })
+
+@app.route('/<path:path>')
+def serve_static_files(path):
+    """Serve static files (CSS, JS, images) for the frontend"""
+    try:
+        return send_from_directory('../frontend', path)
+    except:
+        return jsonify({'error': 'File not found'}), 404
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -184,3 +211,4 @@ if __name__ == '__main__':
     # Start the server
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
