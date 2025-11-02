@@ -213,4 +213,5 @@ function addSampleImages() {
 // Initialize app
 console.log('🌱 Krishi Mitra Frontend Loaded');
 
-console.log('Make sure backend is running on http://localhost:5000');
+console.log('Make sure backend is running on http://localhost:10000');
+
