@@ -99,7 +99,7 @@ async function analyzeImage() {
         formData.append('image', file);
 
         
-        const BACKEND_URL = 'https://krishi-mitra-backend.onrender.com';
+        const BACKEND_URL = 'https://krishi-mitra-crob.onrender.com';
         const response = await fetch(`${BACKEND_URL}/analyze`, {
             method: 'POST',
             body: formData
@@ -212,4 +212,5 @@ function addSampleImages() {
 
 // Initialize app
 console.log('🌱 Krishi Mitra Frontend Loaded');
+
 console.log('Make sure backend is running on http://localhost:5000');
