@@ -6,6 +6,21 @@ from PIL import Image
 import io
 import logging
 
+def ensure_model_exists():
+    model_path = 'trained_model.h5'
+    if not os.path.exists(model_path):
+        logger.info("📥 Model not found, attempting to download...")
+        try:
+            from download_model import download_model
+            download_model()
+            if os.path.exists(model_path):
+                logger.info("✅ Model downloaded successfully!")
+            else:
+                logger.warning("❌ Model download failed, using demo mode")
+        except Exception as e:
+            logger.error(f"❌ Download failed: {e}")
+ensure_model_exists()
+
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('krishi_mitra')
@@ -237,5 +252,6 @@ if __name__ == '__main__':
     # Start the server
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
