@@ -1,3 +1,6 @@
 #!/bin/bash
-echo "Starting backend with Gunicorn..."
-gunicorn --bind 0.0.0.0:$PORT app:app
+echo "Setting up backend..."
+cd backend/model
+python download_model.py
+cd ..
+python app.py
