@@ -23,6 +23,7 @@ def ensure_model_exists():
                 logger.warning("❌ Model download failed, using demo mode")
         except Exception as e:
             logger.error(f"❌ Download failed: {e}")
+
 ensure_model_exists()
 
 # Create Flask app
@@ -53,23 +54,16 @@ except Exception as e:
     logger.error(f"❌ Failed to initialize model: {e}")
     model = None
 
+# Serve frontend files 
 @app.route('/')
-def home():
-    """Welcome message and API information"""
-    return jsonify({
-        'message': '🌱 Krishi Mitra - AI Crop Disease Detection API',
-        'status': 'active',
-        'version': '1.0.0',
-        'model_status': 'loaded' if model and model.model else 'demo_mode',
-        'deployment': 'render_production',
-        'endpoints': {
-            '/': 'GET - API information',
-            '/analyze': 'POST - Analyze crop image for diseases',
-            '/health': 'GET - Health check',
-            '/classes': 'GET - List supported disease classes'
-        },
-        'usage': 'Send POST request to /analyze with image file'
-    })
+def serve_frontend():
+    """Serve the main frontend page"""
+    return send_from_directory('.', 'index.html')
+
+@app.route('/<path:filename>')
+def serve_static_files(filename):
+    """Serve CSS, JS, images, and other static files"""
+    return send_from_directory('.', filename)
 
 @app.route('/analyze', methods=['POST', 'OPTIONS'])
 def analyze_image():
@@ -164,79 +158,6 @@ def test_endpoint():
         'status': 'operational'
     })
 
-# Serve frontend files 
-@app.route('/')
-def serve_frontend():
-    """Serve the main frontend page"""
-    try:
-        return send_from_directory('../frontend', 'index.html')
-    except:
-        try:
-            return send_from_directory('./frontend', 'index.html')
-        except:
-            try:
-                return send_from_directory('frontend', 'index.html')
-            except:
-                # If frontend not found, show API info
-                return jsonify({
-                    'message': '🌱 Krishi Mitra - AI Crop Disease Detection API',
-                    'status': 'active',
-                    'version': '1.0.0', 
-                    'model_status': 'loaded',
-                    'frontend_status': 'not_found',
-                    'note': 'Frontend files exist but cannot be served. Check file structure.',
-                    'endpoints': {
-                        '/analyze': 'POST - Analyze crop image for diseases',
-                        '/health': 'GET - Health check',
-                        '/classes': 'GET - List supported disease classes'
-                    }
-                })
-
-# Serve CSS file
-@app.route('/style.css')
-def serve_css():
-    try:
-        return send_from_directory('../frontend', 'style.css')
-    except:
-        try:
-            return send_from_directory('./frontend', 'style.css')
-        except:
-            try:
-                return send_from_directory('frontend', 'style.css')
-            except:
-                return jsonify({'error': 'CSS file not found'}), 404
-
-# Serve JavaScript file  
-@app.route('/app.js')
-def serve_js():
-    try:
-        return send_from_directory('../frontend', 'app.js')
-    except:
-        try:
-            return send_from_directory('./frontend', 'app.js')
-        except:
-            try:
-                return send_from_directory('frontend', 'app.js')
-            except:
-                return jsonify({'error': 'JS file not found'}), 404
-
-# Serve any other assets (images, etc.)
-@app.route('/<path:filename>')
-def serve_static_files(filename):
-    if filename in ['index.html', 'style.css', 'app.js']:
-        return jsonify({'error': 'Use specific routes for main files'}), 404
-        
-    try:
-        return send_from_directory('../frontend', filename)
-    except:
-        try:
-            return send_from_directory('./frontend', filename) 
-        except:
-            try:
-                return send_from_directory('frontend', filename)
-            except:
-                return jsonify({'error': 'File not found'}), 404
-
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -263,7 +184,7 @@ if __name__ == '__main__':
     print(f"🚀 Environment: {'PRODUCTION' if port != 5000 else 'DEVELOPMENT'}")
     print("="*60)
     print("💡 Endpoints:")
-    print("   GET  /          - API information")
+    print("   GET  /          - Frontend interface")
     print("   POST /analyze   - Analyze crop image")
     print("   GET  /health    - Health check")
     print("   GET  /classes   - List diseases")
@@ -271,11 +192,4 @@ if __name__ == '__main__':
     print("="*60)
     
     # Start the server
-
     app.run(host='0.0.0.0', port=port, debug=False)
-
-
-
-
-
-
