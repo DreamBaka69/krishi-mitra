@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('krishi_mitra')
 
 def ensure_model_exists():
-    model_path = 'trained_model.h5'
+    model_path = 'crop_disease_model.h5'
     if not os.path.exists(model_path):
         logger.info("📥 Model not found, attempting to download...")
         try:
@@ -252,6 +252,7 @@ if __name__ == '__main__':
     # Start the server
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
 
