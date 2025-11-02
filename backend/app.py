@@ -154,26 +154,52 @@ def test_endpoint():
 def serve_frontend():
     """Serve the main frontend page"""
     try:
-        return send_from_directory('../frontend', 'index.html')
+        # Try multiple possible locations for frontend files
+        frontend_paths = [
+            './frontend',
+            '../frontend', 
+            './../frontend',
+            'frontend'
+        ]
+        
+        for frontend_path in frontend_paths:
+            try:
+                return send_from_directory(frontend_path, 'index.html')
+            except:
+                continue
+                
+        # If frontend not found, show API info
+        logger.warning("Frontend files not found, serving API info")
+        return jsonify({
+            'message': '🌱 Krishi Mitra - AI Crop Disease Detection API',
+            'status': 'active',
+            'version': '1.0.0',
+            'model_status': 'demo_mode',
+            'note': 'Frontend not deployed - use API endpoints directly',
+            'endpoints': {
+                '/analyze': 'POST - Analyze crop image for diseases',
+                '/health': 'GET - Health check',
+                '/classes': 'GET - List supported disease classes'
+            },
+            'usage': 'Send POST request to /analyze with image file'
+        })
+        
     except Exception as e:
         logger.error(f"Frontend serving error: {e}")
-        return jsonify({
-            'message': '🌱 Krishi Mitra API is running!',
-            'frontend': 'Frontend files not found, but API is operational',
-            'endpoints': {
-                '/analyze': 'POST - Analyze crop image',
-                '/health': 'GET - Health check',
-                '/classes': 'GET - List supported diseases'
-            }
-        })
+        return jsonify({'error': 'Frontend not available', 'api_status': 'active'})
 
 @app.route('/<path:path>')
 def serve_static_files(path):
     """Serve static files (CSS, JS, images) for the frontend"""
-    try:
-        return send_from_directory('../frontend', path)
-    except:
-        return jsonify({'error': 'File not found'}), 404
+    frontend_paths = ['./frontend', '../frontend', './../frontend', 'frontend']
+    
+    for frontend_path in frontend_paths:
+        try:
+            return send_from_directory(frontend_path, path)
+        except:
+            continue
+            
+    return jsonify({'error': 'File not found'}), 404
 
 # Error handlers
 @app.errorhandler(404)
@@ -211,4 +237,5 @@ if __name__ == '__main__':
     # Start the server
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
