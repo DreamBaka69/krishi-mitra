@@ -1,6 +1,8 @@
 #!/bin/bash
-echo "Setting up backend..."
-cd backend/model
+echo "Starting Crop Disease Detection Backend..."
+
+# Download model if not exists
 python download_model.py
-cd ..
+
+# Start the application
 python app.py
