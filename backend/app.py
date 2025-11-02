@@ -17,7 +17,7 @@ app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
         "origins": [
-            "https://*.github.io",  # GitHub Pages
+            "https://DreamBaka69.github.io/Krishi-mitra/",  # GitHub Pages
             "http://localhost:3000",
             "http://127.0.0.1:3000",
             "http://localhost:5000",
@@ -182,4 +182,5 @@ if __name__ == '__main__':
     print("="*60)
     
     # Start the server
+
     app.run(host='0.0.0.0', port=port, debug=False)
