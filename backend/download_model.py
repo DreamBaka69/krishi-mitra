@@ -7,7 +7,8 @@ def download_model():
     if not os.path.exists(model_path):
         print("Downloading trained model...")
         
-        file_id = "1p7pJXsRjaXZLGO1-ZRFbdiG2OpP-sY8b"  
+        # Replace with YOUR actual Google Drive file ID
+        file_id = "1p7pJXsRjaXZLGO1-ZRFbdiG2OpP-sY8b"
         url = f"https://drive.google.com/uc?id=1p7pJXsRjaXZLGO1-ZRFbdiG2OpP-sY8b&export=download"
         
         gdown.download(url, model_path, quiet=False)
