@@ -6,6 +6,10 @@ from PIL import Image
 import io
 import logging
 
+# Configure Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('krishi_mitra')
+
 def ensure_model_exists():
     model_path = 'trained_model.h5'
     if not os.path.exists(model_path):
@@ -20,10 +24,6 @@ def ensure_model_exists():
         except Exception as e:
             logger.error(f"❌ Download failed: {e}")
 ensure_model_exists()
-
-# Configure Logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('krishi_mitra')
 
 # Create Flask app
 app = Flask(__name__)
@@ -252,6 +252,7 @@ if __name__ == '__main__':
     # Start the server
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
 
