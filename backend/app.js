@@ -57,6 +57,13 @@ const elements = {
     loading: document.getElementById('loading')
 };
 
+// Backend configuration
+const CONFIG = {
+    BACKEND_URL: 'https://krishi-mitra-backend.onrender.com',
+    TIMEOUT: 30000, // 30 seconds
+    MAX_RETRIES: 2
+};
+
 // Handle image upload
 elements.imageInput.addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -87,6 +94,47 @@ elements.imageInput.addEventListener('change', function(e) {
     }
 });
 
+// Check backend health
+async function checkBackendHealth() {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(`${CONFIG.BACKEND_URL}/health`, {
+            method: 'GET',
+            signal: controller.signal,
+            mode: 'cors'
+        });
+
+        clearTimeout(timeoutId);
+        return response.ok;
+    } catch (error) {
+        console.log('Backend health check failed:', error);
+        return false;
+    }
+}
+
+// Update connection status display
+function updateConnectionStatus(isConnected) {
+    const existingStatus = document.getElementById('connection-status');
+    if (existingStatus) {
+        existingStatus.remove();
+    }
+    
+    if (!isConnected) {
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'connection-status';
+        statusDiv.innerHTML = `
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center;">
+                <strong>⚠️ Demo Mode:</strong> Using simulated results. Real analysis will resume when backend is available.
+            </div>
+        `;
+        // Insert at the top of the main content
+        const mainContent = document.querySelector('.container') || document.body;
+        mainContent.insertBefore(statusDiv, mainContent.firstChild);
+    }
+}
+
 // Analyze image function
 async function analyzeImage() {
     const file = elements.imageInput.files[0];
@@ -98,15 +146,30 @@ async function analyzeImage() {
         const formData = new FormData();
         formData.append('image', file);
 
-        
-        const BACKEND_URL = 'https://krishi-mitra-backend.onrender.com';
-        const response = await fetch(`${BACKEND_URL}/analyze`, {
+        // Add timeout and better error handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
+
+        const response = await fetch(`${CONFIG.BACKEND_URL}/analyze`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            signal: controller.signal,
+            mode: 'cors'
         });
 
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
+            // Handle specific HTTP errors
+            if (response.status === 503) {
+                throw new Error('Backend service is temporarily unavailable. Please try again in a few minutes.');
+            } else if (response.status === 500) {
+                throw new Error('Internal server error. The model might be loading.');
+            } else if (response.status === 400) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Invalid request');
+            }
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
         }
 
         const result = await response.json();
@@ -115,12 +178,26 @@ async function analyzeImage() {
             throw new Error(result.error);
         }
         
+        // Update connection status
+        updateConnectionStatus(true);
         showResults(result);
         
     } catch (error) {
         console.error('Analysis error:', error);
-        alert('Failed to analyze image. Please try again or check if the server is running.');
-        // Fallback for demo
+        
+        // Update connection status
+        updateConnectionStatus(false);
+        
+        // More specific error messages
+        if (error.name === 'AbortError') {
+            alert('Request timeout. The server is taking too long to respond. Please try again.');
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+            alert('Cannot connect to the analysis server. This might be due to server maintenance. Using demo mode for now.');
+        } else {
+            alert(`Analysis failed: ${error.message}. Using demo mode.`);
+        }
+        
+        // Fallback to mock result for demo
         const mockResult = getMockResult();
         showResults(mockResult);
     } finally {
@@ -142,6 +219,7 @@ function showResults(result) {
     const disease = result.disease || 'healthy';
     const confidence = result.confidence || 0.85;
     const detailedClass = result.detailed_class || disease;
+    const isDemo = result.note && result.note.includes('Demo');
     
     const info = diseaseDB[disease] || diseaseDB['healthy'];
     
@@ -149,6 +227,7 @@ function showResults(result) {
         <div class="disease-name">${info.name}</div>
         <div class="confidence">Confidence: ${(confidence * 100).toFixed(1)}%</div>
         <div class="disease-detail">Detected: ${formatDiseaseName(detailedClass)}</div>
+        ${isDemo ? '<div style="color: #e67e22; margin-top: 10px;">🔮 Demo Result - Backend Unavailable</div>' : ''}
     `;
     
     elements.treatmentAdvice.innerHTML = `
@@ -192,7 +271,8 @@ function getMockResult() {
     return {
         disease: randomDisease,
         confidence: 0.75 + Math.random() * 0.2,
-        detailed_class: classMap[randomDisease]
+        detailed_class: classMap[randomDisease],
+        note: 'Demo mode - backend unavailable'
     };
 }
 
@@ -202,14 +282,27 @@ function resetForm() {
     elements.imagePreview.innerHTML = '';
     elements.resultSection.style.display = 'none';
     elements.analyzeBtn.disabled = true;
+    
+    // Remove connection status
+    const existingStatus = document.getElementById('connection-status');
+    if (existingStatus) {
+        existingStatus.remove();
+    }
 }
 
-// Add some sample images for demo (optional)
-function addSampleImages() {
-    // This would be implemented if you have sample images
-    console.log('Sample images feature ready');
+// Initialize app with health check
+async function initializeApp() {
+    console.log('🌱 Krishi Mitra Frontend Loaded');
+    
+    const isBackendHealthy = await checkBackendHealth();
+    if (!isBackendHealthy) {
+        console.warn('⚠️ Backend service appears to be unavailable');
+        updateConnectionStatus(false);
+    } else {
+        console.log('✅ Backend service is healthy');
+        updateConnectionStatus(true);
+    }
 }
 
-// Initialize app
-console.log('🌱 Krishi Mitra Frontend Loaded');
-console.log('Make sure backend is running on http://localhost:5000');
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializeApp);
