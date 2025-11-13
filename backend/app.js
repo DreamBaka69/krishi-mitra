@@ -57,9 +57,9 @@ const elements = {
     loading: document.getElementById('loading')
 };
 
-// Backend configuration - FIXED URL
+// Backend configuration
 const CONFIG = {
-    BACKEND_URL: 'https://krishi-mitra-backend.onrender.com', // CORRECT BACKEND URL
+    BACKEND_URL: 'https://krishi-mitra-backend.onrender.com',
     TIMEOUT: 30000
 };
 
@@ -67,28 +67,42 @@ const CONFIG = {
 elements.imageInput.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
+        console.log('📁 File selected:', file.name, file.size, file.type);
+        
         // Validate file type
         if (!file.type.match('image.*')) {
             alert('Please upload an image file (JPG, PNG, JPEG)');
+            elements.imageInput.value = ''; // Reset input
             return;
         }
         
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
             alert('Please upload an image smaller than 5MB');
+            elements.imageInput.value = ''; // Reset input
             return;
         }
         
         const reader = new FileReader();
         reader.onload = function(e) {
+            console.log('🖼️ Image preview loaded');
             elements.imagePreview.innerHTML = `
                 <div class="preview-container">
                     <h3>📸 Image Preview:</h3>
                     <img src="${e.target.result}" class="preview-img" alt="Crop Image Preview">
+                    <p><small>File: ${file.name} (${(file.size/1024).toFixed(1)} KB)</small></p>
                 </div>
             `;
             elements.analyzeBtn.disabled = false;
+            console.log('✅ Analyze button enabled');
         };
+        
+        reader.onerror = function() {
+            console.error('❌ File reading failed');
+            alert('Error reading image file. Please try another image.');
+            elements.imageInput.value = ''; // Reset input
+        };
+        
         reader.readAsDataURL(file);
     }
 });
@@ -146,6 +160,7 @@ async function analyzeImage() {
         return;
     }
 
+    console.log('🚀 Starting analysis...', file.name);
     showLoading(true);
     
     try {
@@ -153,18 +168,26 @@ async function analyzeImage() {
         formData.append('image', file);
 
         console.log(`🔄 Sending to: ${CONFIG.BACKEND_URL}/analyze`);
+        console.log('📦 FormData entries:', Array.from(formData.entries()));
 
         const response = await fetch(`${CONFIG.BACKEND_URL}/analyze`, {
             method: 'POST',
-            body: formData,
-            mode: 'cors'
+            body: formData
+            // Don't set Content-Type header - let browser set it for FormData
         });
 
         console.log('📡 Response status:', response.status);
+        console.log('📡 Response headers:', response.headers);
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error: ${response.status} - ${errorText}`);
+            let errorMessage = `Server error: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // Ignore JSON parse error for non-JSON responses
+            }
+            throw new Error(errorMessage);
         }
 
         const result = await response.json();
@@ -187,7 +210,7 @@ async function analyzeImage() {
         
         // Show error message
         setTimeout(() => {
-            alert(`Analysis failed: ${error.message}. Showing demo results.`);
+            alert(`Backend analysis failed: ${error.message}\n\nShowing demo results for testing.`);
         }, 100);
     } finally {
         showLoading(false);
@@ -216,7 +239,7 @@ function showResults(result) {
         <div class="disease-name">${info.name}</div>
         <div class="confidence">Confidence: ${(confidence * 100).toFixed(1)}%</div>
         <div class="disease-detail">Detected: ${formatDiseaseName(detailedClass)}</div>
-        ${isDemo ? '<div style="color: #e67e22; margin-top: 10px;">🔮 Demo Result</div>' : '<div style="color: #27ae60; margin-top: 10px;">✅ Real Analysis</div>'}
+        ${isDemo ? '<div style="color: #e67e22; margin-top: 10px;">🔮 Demo Result - Backend Unavailable</div>' : '<div style="color: #27ae60; margin-top: 10px;">✅ Real Backend Analysis</div>'}
     `;
     
     elements.treatmentAdvice.innerHTML = `
@@ -225,4 +248,70 @@ function showResults(result) {
         
         <h4>🛡️ Preventive Measures</h4>
         <ul>
-            ${info.prevention.map(item => `<li
+            ${info.prevention.map(item => `<li>${item}</li>`).join('')}
+        </ul>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+            <strong>⚠️ Important:</strong> For severe infections, consult local agricultural experts.
+        </div>
+    `;
+    
+    elements.resultSection.style.display = 'block';
+    elements.resultSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Format disease names
+function formatDiseaseName(className) {
+    return className.replace(/_/g, ' ').replace('Tomato ', '');
+}
+
+// Mock result for demo
+function getMockResult() {
+    const diseases = ['healthy', 'bacterial_blight', 'leaf_spot_early', 'leaf_spot_late'];
+    const randomDisease = diseases[Math.floor(Math.random() * diseases.length)];
+    
+    const classMap = {
+        'healthy': 'Tomato___healthy',
+        'bacterial_blight': 'Tomato___Bacterial_spot',
+        'leaf_spot_early': 'Tomato___Early_blight',
+        'leaf_spot_late': 'Tomato___Late_blight'
+    };
+    
+    return {
+        disease: randomDisease,
+        confidence: 0.75 + Math.random() * 0.2,
+        detailed_class: classMap[randomDisease],
+        note: 'Demo mode - backend unavailable'
+    };
+}
+
+// Reset form
+function resetForm() {
+    elements.imageInput.value = '';
+    elements.imagePreview.innerHTML = '';
+    elements.resultSection.style.display = 'none';
+    elements.analyzeBtn.disabled = true;
+    
+    const statusDiv = document.getElementById('connection-status');
+    if (statusDiv) {
+        statusDiv.remove();
+    }
+}
+
+// Initialize app
+async function initializeApp() {
+    console.log('🌱 Krishi Mitra Frontend Loaded');
+    console.log(`🔗 Backend URL: ${CONFIG.BACKEND_URL}`);
+    
+    const isHealthy = await checkBackendHealth();
+    updateConnectionStatus(isHealthy);
+    
+    if (isHealthy) {
+        console.log('✅ Backend connection successful');
+    } else {
+        console.log('⚠️ Backend unavailable - demo mode active');
+    }
+}
+
+// Start when page loads
+document.addEventListener('DOMContentLoaded', initializeApp);
