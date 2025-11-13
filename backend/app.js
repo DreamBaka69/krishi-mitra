@@ -1,4 +1,4 @@
-// Disease database - Updated for PlantVillage dataset
+// Disease database
 const diseaseDB = {
     'healthy': {
         name: 'Healthy Plant 🌱',
@@ -59,9 +59,8 @@ const elements = {
 
 // Backend configuration - FIXED URL
 const CONFIG = {
-    BACKEND_URL: 'https://krishi-mitra-backend.onrender.com', // MAKE SURE THIS IS CORRECT
-    TIMEOUT: 30000,
-    MAX_RETRIES: 2
+    BACKEND_URL: 'https://krishi-mitra-backend.onrender.com', // CORRECT BACKEND URL
+    TIMEOUT: 30000
 };
 
 // Handle image upload
@@ -97,7 +96,7 @@ elements.imageInput.addEventListener('change', function(e) {
 // Check backend health
 async function checkBackendHealth() {
     try {
-        console.log(`🔍 Checking backend health at: ${CONFIG.BACKEND_URL}/health`);
+        console.log(`🔍 Checking backend at: ${CONFIG.BACKEND_URL}/health`);
         
         const response = await fetch(`${CONFIG.BACKEND_URL}/health`, {
             method: 'GET',
@@ -106,7 +105,7 @@ async function checkBackendHealth() {
 
         if (response.ok) {
             const data = await response.json();
-            console.log('✅ Backend health check passed:', data);
+            console.log('✅ Backend health:', data);
             return true;
         }
         return false;
@@ -116,30 +115,36 @@ async function checkBackendHealth() {
     }
 }
 
-// Update connection status display
+// Update connection status
 function updateConnectionStatus(isConnected) {
-    const existingStatus = document.getElementById('connection-status');
-    if (existingStatus) {
-        existingStatus.remove();
-    }
+    let statusDiv = document.getElementById('connection-status');
     
     if (!isConnected) {
-        const statusDiv = document.createElement('div');
-        statusDiv.id = 'connection-status';
-        statusDiv.innerHTML = `
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center;">
-                <strong>⚠️ Demo Mode:</strong> Using simulated results. Backend connection failed.
-            </div>
-        `;
-        const mainContent = document.querySelector('.container') || document.body;
-        mainContent.insertBefore(statusDiv, mainContent.firstChild);
+        if (!statusDiv) {
+            statusDiv = document.createElement('div');
+            statusDiv.id = 'connection-status';
+            statusDiv.innerHTML = `
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center;">
+                    <strong>⚠️ Demo Mode:</strong> Backend connection failed. Using simulated results.
+                </div>
+            `;
+            const container = document.querySelector('.container');
+            if (container) {
+                container.insertBefore(statusDiv, container.firstChild);
+            }
+        }
+    } else if (statusDiv) {
+        statusDiv.remove();
     }
 }
 
 // Analyze image function
 async function analyzeImage() {
     const file = elements.imageInput.files[0];
-    if (!file) return;
+    if (!file) {
+        alert('Please select an image first');
+        return;
+    }
 
     showLoading(true);
     
@@ -147,7 +152,7 @@ async function analyzeImage() {
         const formData = new FormData();
         formData.append('image', file);
 
-        console.log(`🔄 Sending request to: ${CONFIG.BACKEND_URL}/analyze`);
+        console.log(`🔄 Sending to: ${CONFIG.BACKEND_URL}/analyze`);
 
         const response = await fetch(`${CONFIG.BACKEND_URL}/analyze`, {
             method: 'POST',
@@ -158,23 +163,32 @@ async function analyzeImage() {
         console.log('📡 Response status:', response.status);
 
         if (!response.ok) {
-            throw new Error(`Server responded with ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
         console.log('✅ Analysis result:', result);
         
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
         updateConnectionStatus(true);
         showResults(result);
         
     } catch (error) {
-        console.error('❌ Analysis error:', error);
-        
+        console.error('❌ Analysis failed:', error);
         updateConnectionStatus(false);
         
-        // Fallback to mock result
+        // Show error but continue with demo
         const mockResult = getMockResult();
         showResults(mockResult);
+        
+        // Show error message
+        setTimeout(() => {
+            alert(`Analysis failed: ${error.message}. Showing demo results.`);
+        }, 100);
     } finally {
         showLoading(false);
     }
@@ -211,66 +225,4 @@ function showResults(result) {
         
         <h4>🛡️ Preventive Measures</h4>
         <ul>
-            ${info.prevention.map(item => `<li>${item}</li>`).join('')}
-        </ul>
-    `;
-    
-    elements.resultSection.style.display = 'block';
-    elements.resultSection.scrollIntoView({ behavior: 'smooth' });
-}
-
-// Format disease names for display
-function formatDiseaseName(className) {
-    return className.replace(/_/g, ' ').replace('Tomato ', '');
-}
-
-// Mock result for demo when backend is not available
-function getMockResult() {
-    const diseases = ['healthy', 'bacterial_blight', 'leaf_spot_early', 'leaf_spot_late'];
-    const randomDisease = diseases[Math.floor(Math.random() * diseases.length)];
-    
-    const classMap = {
-        'healthy': 'Tomato___healthy',
-        'bacterial_blight': 'Tomato___Bacterial_spot',
-        'leaf_spot_early': 'Tomato___Early_blight',
-        'leaf_spot_late': 'Tomato___Late_blight'
-    };
-    
-    return {
-        disease: randomDisease,
-        confidence: 0.75 + Math.random() * 0.2,
-        detailed_class: classMap[randomDisease],
-        note: 'Demo mode - backend unavailable'
-    };
-}
-
-// Reset form
-function resetForm() {
-    elements.imageInput.value = '';
-    elements.imagePreview.innerHTML = '';
-    elements.resultSection.style.display = 'none';
-    elements.analyzeBtn.disabled = true;
-    
-    const existingStatus = document.getElementById('connection-status');
-    if (existingStatus) {
-        existingStatus.remove();
-    }
-}
-
-// Initialize app with health check
-async function initializeApp() {
-    console.log('🌱 Krishi Mitra Frontend Loaded');
-    console.log(`🔗 Backend URL: ${CONFIG.BACKEND_URL}`);
-    
-    const isBackendHealthy = await checkBackendHealth();
-    updateConnectionStatus(isBackendHealthy);
-    
-    if (isBackendHealthy) {
-        console.log('✅ Backend connection successful');
-    } else {
-        console.log('❌ Backend connection failed - using demo mode');
-    }
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeApp);
+            ${info.prevention.map(item => `<li
