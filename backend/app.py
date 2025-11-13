@@ -40,8 +40,11 @@ def test():
         "status": "success"
     })
 
-@app.route('/analyze', methods=['POST'])
+@app.route('/analyze', methods=['POST', 'OPTIONS'])
 def analyze_image():
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     logger.info("📨 ANALYZE ENDPOINT CALLED")
     
     try:
@@ -106,15 +109,6 @@ def list_classes():
         'status': 'success'
     })
 
-# Error handlers
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({'error': 'Endpoint not found'}), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    return jsonify({'error': 'Internal server error'}), 500
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     
@@ -125,13 +119,10 @@ if __name__ == '__main__':
     print("🚀 Status: API SERVER RUNNING")
     print("🔗 CORS: Enabled for all origins")
     print("="*60)
-    print("💡 API Endpoints:")
-    print("   GET  /          - API Home")
-    print("   GET  /health    - Health check") 
-    print("   POST /analyze   - Analyze images")
-    print("   GET  /test      - Test endpoint")
-    print("   GET  /classes   - Disease classes")
+    print("💡 TEST THESE URLS:")
+    print(f"   {CONFIG.BACKEND_URL}/health")
+    print(f"   {CONFIG.BACKEND_URL}/test") 
+    print(f"   {CONFIG.BACKEND_URL}/classes")
     print("="*60)
-    print("Starting server...")
     
     app.run(host='0.0.0.0', port=port, debug=False)
