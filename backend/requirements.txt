@@ -1,8 +1,0 @@
-gunicorn
-gdown
-flask
-tensorflow
-flask-cors
-numpy
-pillow
-requests
