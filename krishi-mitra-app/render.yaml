@@ -1,0 +1,17 @@
+# render.yaml - Render service manifest
+services:
+  - type: web
+    name: krishi-mitra-backend
+    env: python
+    region: oregon
+    plan: free
+    repo: <YOUR_GITHUB_USERNAME>/krishi-mitra
+    branch: main
+    buildCommand: "pip install -r krishi-mitra-app/backend/requirements.txt"
+    startCommand: "gunicorn -w 2 -b 0.0.0.0:$PORT -t 120 app:app"
+    root: krishi-mitra-app/backend
+    envVars:
+      - key: GOOGLE_DRIVE_ID
+        value: ""   # set via Render dashboard or pipeline secrets
+      - key: MODEL_PATH
+        value: "crop_disease_model.h5"
